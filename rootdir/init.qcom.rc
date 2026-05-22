@@ -1,0 +1,78 @@
+# Minimal QTASUN2 init seed for Android 10 bring-up. Keep this small until
+# boot logs show which stock Qualcomm daemons are still required.
+
+on early-init
+    mkdir /firmware 0771 system system
+    mkdir /dsp 0771 media media
+    mkdir /NVM 0771 system system
+    mkdir /persist 0771 system system
+
+on fs
+    wait /dev/block/bootdevice
+
+    wait /dev/block/bootdevice/by-name/cache
+    mount ext4 /dev/block/bootdevice/by-name/cache /cache nosuid nodev barrier=1
+
+    wait /dev/block/bootdevice/by-name/NVM
+    mount ext4 /dev/block/bootdevice/by-name/NVM /NVM nosuid nodev barrier=1
+    chown system system /NVM
+    chmod 0775 /NVM
+    restorecon_recursive /NVM
+
+    wait /dev/block/bootdevice/by-name/persist
+    mount ext4 /dev/block/bootdevice/by-name/persist /persist nosuid nodev barrier=1
+    mkdir /persist/data 0700 system system
+    restorecon_recursive /persist
+
+    wait /dev/block/bootdevice/by-name/dsp
+    mount ext4 /dev/block/bootdevice/by-name/dsp /dsp ro nosuid nodev barrier=1
+
+    wait /dev/block/bootdevice/by-name/modem
+    mount vfat /dev/block/bootdevice/by-name/modem /firmware ro context=u:object_r:firmware_file:s0,shortname=lower,uid=1000,gid=1000,dmask=227,fmask=337
+
+on post-fs-data
+    mkdir /data/tombstones 0771 system system
+    mkdir /data/misc/audio 0770 audio audio
+    mkdir /data/misc/audio_pp 0771 media audio
+    mkdir /data/misc/camera 0770 camera camera
+    mkdir /data/misc/dts 0770 media audio
+    mkdir /data/misc/ipa 0700 net_admin net_admin
+    mkdir /data/misc/qsee 0770 system system
+    mkdir /data/misc/wifi 0770 wifi wifi
+    mkdir /data/misc/wifi/sockets 0770 wifi wifi
+    mkdir /data/misc/wifi/wpa_supplicant 0770 wifi wifi
+
+on boot
+    setprop wifi.interface wlan0
+    setprop net.tcp.buffersize.default 4096,87380,524288,4096,16384,110208
+    setprop net.tcp.buffersize.wifi 524288,2097152,4194304,262144,524288,1048576
+    setprop net.tcp.buffersize.lte 2097152,4194304,8388608,262144,524288,1048576
+
+service qseecomd /system/bin/qseecomd
+    class core
+    user root
+    group root
+
+service thermal-engine /system/vendor/bin/thermal-engine
+    class main
+    user root
+    socket thermal-send-client stream 0666 system system
+    socket thermal-recv-client stream 0660 system system
+    socket thermal-recv-passive-client stream 0666 system system
+    group root
+
+service wcnss-service /system/bin/wcnss_service
+    class main
+    user system
+    group system wifi radio
+    oneshot
+
+service time_daemon /system/bin/time_daemon
+    class late_start
+    user root
+    group root
+
+service perfd /system/vendor/bin/perfd
+    class main
+    user root
+    disabled
