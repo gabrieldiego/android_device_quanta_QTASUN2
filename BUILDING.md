@@ -15,6 +15,11 @@ Use a local Linux filesystem for the checkout or at least for a working copy of
 the completed `lineage-17.1` tree. The output directory must also live on a
 filesystem that supports Unix sockets.
 
+`ntfs3` with the `windows_names` mount option is not sufficient. Even though it
+can create Unix sockets on this host, it cannot check out Android source files
+whose names are valid on Linux but invalid on Windows, such as
+`build/blueprint/pathtools/testdata/escapes/*`.
+
 ## Last verified configuration step
 
 With the checkout complete and the QTASUN2 device/vendor repos installed,
